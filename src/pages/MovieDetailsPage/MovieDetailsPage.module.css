@@ -1,0 +1,29 @@
+.imgPoster {
+    width: 200px;
+}
+
+.divPosterBtn {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.boxPage {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    background-color: rgba(240, 248, 255, 0.674);
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.linkNav {
+    display: flex;
+    flex-direction: column;
+    list-style-type: initial;
+    margin-left: 20px ;
+}
