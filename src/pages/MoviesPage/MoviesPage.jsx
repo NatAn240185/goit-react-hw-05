@@ -1,48 +1,66 @@
-import { useEffect, useState } from 'react'
-import { useSearchParams } from "react-router-dom";
-import { fetchSearch } from '../../services/api';
-import SearchMovie from '../../components/SearchMovie/SearchMovie'
-import MovieList from '../../components/MovieList/MovieList';
-
+import { useNavigate, useSearchParams } from "react-router-dom";
+import MovieList from "../../components/MovieList/MovieList";
+import s from "./MoviesPage.module.css";
+import { useEffect, useState } from "react";
+import getMovies from "../../getMovies";
 
 const MoviesPage = () => {
-  const [movies, setMovies] = useState([]);
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const [searchMovie, setSearchMovie] = useState([]);
+  const [searchParams] = useSearchParams();
+  const queryFromUrl = searchParams.get("query");
 
-  const handleChangeQuery = newQuery => {
-    setSearchParams({query: newQuery})
-  }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const query = e.target.elements.query.value.trim();
+    if (query === "") {
+      return;
+    }
+    onSubmit(query);
+    e.target.reset();
+  };
 
-  const searchQuery = searchParams.get("query")
+  const onSubmit = (newQuery) => {
+    setQuery(newQuery);
+    navigate(`/movies?query=${newQuery}`, { state: { query: newQuery } });
+  };
 
-  useEffect(() => { 
-    if (!searchQuery) return
-    const getDeta = async () => {
-      setIsLoading(true)
-      setError(null)
-          try {
-            const data = await fetchSearch(searchQuery);
-            setMovies(data.results)            
-          } catch (error) {
-          setError(error)
-        } finally {
-          setIsLoading(false);
-        }
-        };
+  useEffect(() => {
+    if (!query) return;
 
-        getDeta();
-    }, [searchQuery]);
+    const fetchMoviesSearch = async () => {
+      try {
+        const searchResults = await getMovies("search", query);
+        setSearchMovie(searchResults);
+      } catch (error) {
+        console.error("Error fetching search results:", error);
+      }
+    };
+    fetchMoviesSearch();
+  }, [query]);
+
+  useEffect(() => {
+    if (queryFromUrl) {
+      setQuery(queryFromUrl);
+    }
+  }, [queryFromUrl]);
 
   return (
-    <div>
-        {isLoading && <p>Loading</p>}
-        {error && <p>404</p>}
-      <SearchMovie handleChangeQuery={handleChangeQuery} />
-      {movies.length > 0 && <MovieList movies={movies} />}
+    <div className={s.container}>
+      <form onSubmit={handleSubmit}>
+        <input
+          name="query"
+          type="text"
+          autoComplete="off"
+          autoFocus
+          placeholder="Search movies"
+        />
+        <button type="submit">Search</button>
+      </form>
+      <MovieList listMovie={searchMovie} query={query} />
     </div>
-  )
-}
+  );
+};
 
-export default MoviesPage
+export default MoviesPage;

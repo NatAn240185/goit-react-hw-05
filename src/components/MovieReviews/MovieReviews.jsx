@@ -1,55 +1,56 @@
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom';
-import { fetchMovieReviews } from '../../services/api';
-import css from './MovieReviews.module.css';
+import { useCallback, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import getMovies from "../../getMovies";
+import s from "./MovieReviews.module.css";
 
-const Reviews = () => {
-    
-    const { movieId } = useParams();
-    const [reviewsMovie, setreviewsMovie] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+const MovieReviews = () => {
+  const { movieId } = useParams();
+  const [reviews, setReviews] = useState();
 
-    useEffect(() => {
-        const getReviews = async () => {
-                setIsLoading(true);
-                setError(null)
-            try {
-                const data = await fetchMovieReviews(movieId);
-                setreviewsMovie(data);                
-            } catch (error) {
-                setError(error)
-            } finally {
-                setIsLoading(false);
-            }
+  const fetchReviewsInfo = useCallback(async () => {
+    if (!movieId) return;
 
-        };
-
-        getReviews();
-    }, [movieId]);
-
-    if (reviewsMovie.length === 0) {
-        return <p>There are no reviews yet</p>;
-    } else {
-        return (
-            <div>
-                <ul className={css.list}>
-                    {isLoading && <p>Loading</p>}
-                    {error && <p>404</p>}
-                    {reviewsMovie.map(({ id, author, content }) => {
-                        if (author) {
-                            return (
-                                <li key={id} className={css.item}>
-                                    <h3>Author: {author}</h3>
-                                    <p className="text"> {content}</p>
-                                </li>
-                            );
-                        }
-                    })}
-                </ul>
-            </div>
-        )
+    try {
+      const infoReviewsFilm = await getMovies("reviews", "", movieId);
+      setReviews(infoReviewsFilm);
+    } catch (error) {
+      console.error("Error fetching movie reviews:", error);
     }
-}
+  }, [movieId]);
 
-    export default Reviews;
+  useEffect(() => {
+    if (movieId) {
+      fetchReviewsInfo();
+    }
+  }, [movieId, fetchReviewsInfo]);
+
+  if (!reviews) {
+    return <p>Loading...</p>;
+  }
+  return (
+    <>
+      {reviews.length === 0 && <p>No reviews available</p>}
+
+      {reviews.length > 0 && (
+        <ul className={s.list}>
+          {reviews.map(({ author, content, id, created_at }) => {
+            const date = new Date(created_at);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            const formattedDate = `${year}-${month}-${day}`;
+            return (
+              <li key={id} className={s.item}>
+                <h4>{author}</h4>
+                <p>{content}</p>
+                <p>{formattedDate}</p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
+  );
+};
+
+export default MovieReviews;

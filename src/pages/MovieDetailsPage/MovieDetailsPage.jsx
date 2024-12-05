@@ -1,70 +1,105 @@
-import { Suspense, useEffect, useState, useRef } from 'react';
-import { useParams, NavLink, Outlet, Link, useLocation } from 'react-router-dom';
-import { fetchMovieById } from '../../services/api';
-import css from './MovieDetailsPage.module.css';
-
-const MovieDetailsPage = () => {
+import {
+    Link,
+    Outlet,
+    useParams,
+    useNavigate,
+    useLocation,
+  } from "react-router-dom";
+  import { useState, useEffect, useCallback, useRef } from "react";
+  import getMovies from "../../getMovies";
+  import s from "./MovieDetailsPage.module.css";
+  
+  const MovieDetailsPage = () => {
     const { movieId } = useParams();
     const [movie, setMovie] = useState(null);
+    const navigate = useNavigate();
     const location = useLocation();
-    const back = useRef(location?.state ?? "/");
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState(null)
-
-    useEffect(() => {
-        const getDetails = async () => {
-            try {
-                const data = await fetchMovieById(movieId);
-                data.poster = `https://image.tmdb.org/t/p/w500/${data.poster_path}`;
-                setMovie(data);                
-            } catch (error) {
-                setError(error)
-            } finally {
-                setIsLoading(false);
-            }
-
-        };
-
-        getDetails();
+    const initialLocationState = useRef(location.state);
+    const query = initialLocationState.current?.query;
+  
+    const fetchMoreInfoMovies = useCallback(async () => {
+      if (!movieId) return;
+      try {
+        const infoFoMovies = await getMovies("moreInfo", "", movieId);
+        setMovie(infoFoMovies);
+      } catch (error) {
+        console.error("Error fetching movie details:", error);
+      }
     }, [movieId]);
-
+  
+    useEffect(() => {
+      if (movieId) {
+        fetchMoreInfoMovies();
+      }
+    }, [movieId, fetchMoreInfoMovies]);
+  
     if (!movie) {
-        return 'Loading...'
+      return <p>Loading...</p>;
     }
+  
+    const { poster_path, title, overview, release_date, vote_average, genres } =
+      movie;
+  
+    const handleGoBack = () => {
+      const from = initialLocationState.current?.from;
+  
+      if (from === "/movies") {
+        navigate(`${from}?query=${query}`);
+      } else {
+        navigate("/");
+      }
+    };
+  
     return (
+      <div className={s.container}>
+        <button className={s.button} type="button" onClick={handleGoBack}>
+          Go back
+        </button>
         <div>
-        {isLoading && <p>Loading</p>}
-        {error && <p>404</p>}
-            <div className={css.boxPage}>
-            <div className={css.divPosterBtn}>
-            <Link className={css.btn} to={back.current} >← Go back</Link>
-            {movie && <img className={css.imgPoster} src={movie.poster} alt={movie.title} />} 
+          <div>
+            <div className={s.title_info}>
+              <img
+                src={`https://image.tmdb.org/t/p/w400/${poster_path}`}
+                alt={title}
+              />
+              <div className={s.info}>
+                <h3>{title}</h3>
+                <p>{overview}</p>
+                <h4>Genres</h4>
+                <p>{genres.map((item) => `${item.name} `)}</p>
+                <h4>Rating:</h4>
+                <p>{Math.round(vote_average * 10)}%</p>
+                <h4>Release Date:</h4>
+                <p>{release_date}</p>
+              </div>
             </div>
-
-            <div>
-                <h2>{movie ? movie.title : ''} ({movie.release_date.slice(0, 4)}) </h2>
-                <p>User score: {movie ? movie.popularity : ''}</p>
-                    <h3>Overview</h3>
-                    <p>{movie ? movie.overview : ''}</p>
-                    <h3>Genres</h3>    
-                    <p>{movie && movie.genres.length > 0 ? movie.genres.map(genre => genre.name).join(', ') : ''}</p>    
-            </div>                
-            </div>
-
-
-            <hr />
-            <p>Additional information</p>
-            <div>
-                <NavLink className={css.linkNav} to='cast' > <li>Cast</li> </NavLink>
-                <NavLink className={css.linkNav} to='reviews' > <li>Reviews </li></NavLink>                
-            </div>
-            <hr />
-            <Suspense>
-                <Outlet />
-            </Suspense>
-            
+            <p className={s.more_info}>Additional info:</p>
+            <ul className={s.list}>
+              <li>
+                <Link
+                  className={s.link}
+                  to="cast"
+                  state={{ from: location.pathname }}
+                >
+                  Cast
+                </Link>
+              </li>
+              <li>
+                <Link
+                  className={s.link}
+                  to="reviews"
+                  state={{ from: location.pathname }}
+                >
+                  Reviews
+                </Link>
+              </li>
+            </ul>
+  
+            <Outlet />
+          </div>
         </div>
+      </div>
     );
-}
-
-export default MovieDetailsPage;
+  };
+  
+  export default MovieDetailsPage;

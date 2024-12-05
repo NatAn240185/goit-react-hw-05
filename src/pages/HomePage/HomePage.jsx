@@ -1,38 +1,32 @@
-import React, { useEffect, useState } from 'react'
-import MovieList from '../../components/MovieList/MovieList'
-import { fetchMovie } from '../../services/api';
-
-const HomePage = () => {
-
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
+import { useEffect, useState } from "react";
+import MovieList from "../../components/MovieList/MovieList";
+import s from "./HomePage.module.css";
+import getMovies from "../../getMovies";
+import { useLocation } from "react-router-dom";
+function HomePage() {
+  const [topListMovie, setTopListMovie] = useState();
+  const location = useLocation();
 
   useEffect(() => {
-    const getAllMovies = async () => {
-      setIsLoading(true);
-      setError(null)
-      try {
-        const data = await fetchMovie();
-        setMovies(data.results); 
-      } catch (error) {
-        setError(error)
-      } finally {
-        setIsLoading(false);
+    const fetchMovies = async () => {
+      if (location.pathname === "/") {
+        try {
+          const topListMovieDay = await getMovies();
+          setTopListMovie(topListMovieDay);
+        } catch (error) {
+          console.error("Error fetching popular movies:", error);
+        }
       }
     };
-    getAllMovies();
-  }, []);
+    fetchMovies();
+  }, [location]);
 
-    return (
-      <div>
-        <h2>Trending today</h2>
-        {isLoading && <p>Loading</p>}
-        {error && <p>404</p>}
-        {movies.length > 0 && <MovieList movies={movies} /> }
-      </div>
-
-  )
+  return (
+    <div className={s.container}>
+      <h2>Trending today</h2>
+      <MovieList listMovie={topListMovie} />
+    </div>
+  );
 }
 
-export default HomePage
+export default HomePage;
